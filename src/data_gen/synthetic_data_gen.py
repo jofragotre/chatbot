@@ -111,7 +111,6 @@ class BatchedConversationGenerator:
         """Generate and parse a batch of conversations"""
         # Generate batch
         generated_texts = self.model_handler.generate_text_batch(prompts)
-        print(generated_texts)
         
         # Parse each generated conversation
         parsed_conversations = []
@@ -177,11 +176,11 @@ def main():
     parser = argparse.ArgumentParser(description="Generate synthetic hotel chatbot conversations with batching")
     parser.add_argument("--output", "-o", type=str, default="synthetic_conversations.jsonl",
                        help="Output file path")
-    parser.add_argument("--count", "-c", type=int, default=200,
+    parser.add_argument("--count", "-c", type=int, default=1000,
                        help="Total number of conversations to generate")
     parser.add_argument("--model", "-m", type=str, default="Qwen/Qwen3-1.7B",
                        help="Model name to use")
-    parser.add_argument("--batch-size", "-b", type=int, default=4,
+    parser.add_argument("--batch-size", "-b", type=int, default=8,
                        help="Batch size for generation")
     
     args = parser.parse_args()

@@ -4,7 +4,7 @@ Conversation generation prompts and utilities
 import json
 import random
 from typing import Dict, List
-from config import HOTEL_CONTEXTS, AMENITIES, ROOM_TYPES
+from config import HOTEL_CONTEXTS, AMENITIES, ROOM_TYPES, MONTHS
 
 class ConversationPrompts:
     """Generate prompts for different booking intent levels"""
@@ -12,11 +12,18 @@ class ConversationPrompts:
     @staticmethod
     def get_base_context() -> Dict[str, str]:
         """Get randomized hotel context"""
+
+        # For simplicity only allow 1 month and assume all have 31 days.
+        day_interval = random.randint(1, 10)
+        first_day = random.randint(1, 31-day_interval) 
+        last_day = first_day + day_interval
+
         return {
             "hotel_type": random.choice(HOTEL_CONTEXTS),
             "amenities": random.sample(AMENITIES, k=random.randint(3, 6)),
             "room_types": random.sample(ROOM_TYPES, k=random.randint(2, 4)),
             "price_range": random.choice(["€80-120", "€150-200", "€300-500", "€500+"]),
+            "date_range": random.choice(MONTHS) + " " + str(first_day) + " - " + str(last_day)
         }
     
     @staticmethod
@@ -33,8 +40,8 @@ class ConversationPrompts:
             "- Broad, general questions about the location/hotel\n"
             "- Casual browsing behavior\n"
             "- No specific dates or details\n"
-            "- Questions like 'What's nearby?', 'Any weekend deals?', 'Tell me about the area'\n"
-            "- 3-6 message exchanges\n"
+            "- Questions like 'What's nearby?', 'Any weekend deals?', 'Tell me about the area', etc.\n"
+            "- 3-8 message exchanges\n"
             "- Natural, conversational flow\n\n"
             
             "Format as JSON with this structure:\n"
@@ -60,9 +67,9 @@ class ConversationPrompts:
             "The conversation should show:\n"
             "- Specific questions about dates, prices, room types\n"
             "- Comparing options and policies\n"
-            "- Questions like 'What's the rate for Oct 15-17?', 'What's included in breakfast?', 'Cancellation policy?'\n"
+            f"- Questions like 'What's the rate for {context["date_range"]}?', 'What's included in breakfast?', 'Cancellation policy?, etc.'\n"
             "- Shows interest but no commitment yet\n"
-            "- 4-8 message exchanges\n"
+            "- 4-10 message exchanges\n"
             "- Natural decision-making process\n\n"
             
             "Format as JSON with this structure:\n"
@@ -87,9 +94,9 @@ class ConversationPrompts:
             "The conversation should show:\n"
             "- Ready to book with specific commands\n"
             "- Providing booking details (dates, guest info)\n"
-            "- Questions like 'Book the Deluxe for Oct 12-14', 'I'll take that room', 'Proceed with booking'\n"
+            f"- Sentences like 'Book the Deluxe for {context['date_range']}', 'I'll take that room', 'Proceed with booking', etc.\n"
             "- Booking completion or moving to payment\n"
-            "- 4-7 message exchanges\n"
+            "- 4-10 message exchanges\n"
             "- Clear intent to finalize booking\n\n"
             
             "Format as JSON with this structure:\n"
@@ -162,102 +169,3 @@ def generate_session_id() -> str:
     """Generate a random session ID"""
     import uuid
     return str(uuid.uuid4())[:8]
-
-# Additional utility functions for enhanced prompt generation
-class PromptTemplates:
-    """Template strings for consistent prompt formatting"""
-    
-    BASE_INSTRUCTIONS = (
-        "Generate a realistic hotel chatbot conversation.\n"
-        "Use natural language and realistic booking scenarios.\n"
-        "Include both user and bot messages in proper sequence.\n\n"
-    )
-    
-    JSON_FORMAT_INSTRUCTION = (
-        "Format as JSON with this exact structure:\n"
-        '{\n'
-        '    "session_id": "random_id",\n'
-        '    "messages": [\n'
-        '        {"role": "user", "text": "user message"},\n'
-        '        {"role": "bot", "text": "bot response"}\n'
-        '    ],\n'
-        '    "intent_label": "intent_type"\n'
-        '}\n\n'
-    )
-    
-    @staticmethod
-    def get_context_description(context: Dict[str, str]) -> str:
-        """Format context into readable description"""
-        return (
-            f"Hotel Type: {context['hotel_type']}\n"
-            f"Available Amenities: {', '.join(context['amenities'])}\n"
-            f"Room Types: {', '.join(context['room_types'])}\n"
-            f"Price Range: {context['price_range']}\n"
-        )
-    
-    @staticmethod
-    def get_intent_guidelines(intent_type: str) -> str:
-        """Get specific guidelines for each intent type"""
-        guidelines = {
-            "low": [
-                "Broad, exploratory questions",
-                "No specific dates or booking details",
-                "General interest in location/amenities",
-                "Questions about deals or promotions",
-                "Casual, browsing tone"
-            ],
-            
-            "medium": [
-                "Specific questions about availability and pricing",
-                "Comparing different room types or dates",
-                "Asking about policies (cancellation, breakfast, etc.)",
-                "Shows genuine interest but still deciding",
-                "More detailed inquiries"
-            ],
-            
-            "high": [
-                "Ready to book with clear intent",
-                "Providing specific dates and requirements",
-                "Asking for booking confirmation",
-                "Moving toward payment process",
-                "Decisive language and commitment"
-            ],
-            
-            "abandoned": [
-                "Started booking process but didn't complete",
-                "Asked to hold reservation or finish later",
-                "Showed high intent but session ended abruptly",
-                "Reached payment step but backed out",
-                "Clear signs of abandonment"
-            ]
-        }
-        
-        items = guidelines.get(intent_type, [])
-        return "\n".join(f"- {item}" for item in items)
-
-# Enhanced conversation examples for better generation
-class ConversationExamples:
-    """Provide examples to guide better generation"""
-    
-    LOW_INTENT_EXAMPLE = {
-        "session_id": "example_low",
-        "messages": [
-            {"role": "user", "text": "Hi, what's around your hotel?"},
-            {"role": "bot", "text": "We're located in the city center with shopping and restaurants within walking distance."},
-            {"role": "user", "text": "Any good weekend packages?"},
-            {"role": "bot", "text": "We have a weekend getaway package starting at €199 including breakfast."}
-        ],
-        "intent_label": "low"
-    }
-    
-    HIGH_INTENT_EXAMPLE = {
-        "session_id": "example_high", 
-        "messages": [
-            {"role": "user", "text": "I want to book a room for Oct 15-17, 2 adults"},
-            {"role": "bot", "text": "Available: Deluxe Room €180/night. Shall I proceed?"},
-            {"role": "user", "text": "Yes, book it please"},
-            {"role": "bot", "text": "I'll need your name and email to confirm."}
-        ],
-        "intent_label": "high",
-        "booking_completed": False
-    }

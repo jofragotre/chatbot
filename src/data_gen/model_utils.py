@@ -35,7 +35,7 @@ class ModelHandler:
             # Load model
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.config.model_name,
-                torch_dtype=getattr(torch, self.config.torch_dtype) if self.config.torch_dtype != "auto" else "auto",
+                dtype=getattr(torch, self.config.torch_dtype) if self.config.torch_dtype != "auto" else "auto",
                 device_map=self.config.device_map,
                 trust_remote_code=True
             )

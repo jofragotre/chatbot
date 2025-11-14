@@ -8,10 +8,10 @@ from typing import Dict, List
 class ModelConfig:
     """Model configuration settings"""
     model_name: str = "Qwen/Qwen3-1.7B"
-    device_map: str = "auto"
-    torch_dtype: str = "auto"
+    device_map: str = "cuda:0"
+    torch_dtype: str = "float16"
     max_new_tokens: int = 1024
-    temperature: float = 0.8
+    temperature: float = 0.85
     do_sample: bool = True
     top_p: float = 0.9
 
@@ -43,16 +43,23 @@ HOTEL_CONTEXTS = [
     "family resort",
     "spa hotel",
     "budget hotel",
-    "historic hotel"
+    "historic hotel",
+    "hotel",
+    "accomodation"
 ]
 
 AMENITIES = [
-    "spa", "gym", "pool", "restaurant", "bar", "room service",
+    "spa", "gym", "pool", "restaurant", "bar", "room service", 
     "wifi", "parking", "airport shuttle", "concierge", "laundry",
-    "business center", "conference rooms", "pet-friendly"
+    "business center", "conference rooms", "pet-friendly", "massage", "fitness center",
+    "gymnasium", "sauna", "steam room", "outdoor pool", "indoor pool", "jacuzzi", "all inclusive"
 ]
 
 ROOM_TYPES = [
     "Standard Room", "Deluxe Room", "Superior Room", "Suite",
     "Family Room", "Executive Room", "Penthouse", "Villa"
+]
+
+MONTHS = [
+    "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
 ]

@@ -1,0 +1,14 @@
+,session_id,text_user,n_user_turns,n_bot_turns,has_dates,has_money,has_email,mentions_booking_verb,mentions_payment,mentions_abandon,mentions_room,mentions_occupancy,mentions_service,mentions_policy_info,asked_name_email,user_provided_email,has_availability_words,has_price_words,has_room_words,has_payment_words
+0,27a3b1,"Hi, availability for 12–14 Oct for 2 adults? Yes, book the Deluxe. John Smith, john@example.com",3,3,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,1
+1,34fd5e,I need 1 night tonight. Yes. I'll finish later.,3,3,1,1,0,1,1,1,1,0,0,0,0,0,0,1,1,1
+2,63c2db,Do you have an airport shuttle? Where do I catch it at the airport?,2,2,1,1,0,0,0,0,0,0,0,1,0,0,1,1,0,0
+3,53b0dd,What's your early check-in policy? Is there a fee?,2,2,1,0,0,0,0,0,1,0,0,1,0,0,0,0,1,0
+4,95a158,Are pets allowed at the hotel? Any restrictions in common areas?,2,2,0,0,0,0,0,0,1,0,0,1,0,0,0,0,1,0
+5,8f5a03,Do you have accessible rooms? Is there step-free access to the lobby?,2,2,0,0,0,0,0,0,1,0,1,1,0,0,1,0,1,0
+6,185205,The Wi‑Fi keeps disconnecting in my room. Still unstable.,2,2,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1,0
+7,50b0d4,"Can I get extra towels and pillows to room 412? That's all, thanks.",2,2,1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,0
+8,bc24cd,"Do you have sea-view rooms this weekend? What's the difference? I'll take Superior. Maria, maria@example.com.",3,3,1,1,1,0,1,0,1,0,0,0,0,1,1,1,1,1
+9,1431b1,The AC is making a loud noise. 14:30 works.,2,2,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0
+10,e55b0e,I left a black umbrella in the lobby yesterday. It's a compact Samsonite with a silver button.,2,2,1,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0
+11,8d0741,"Can you send me the invoice for my last stay? billing@acme.com, VAT PT123456789",2,2,1,0,1,0,0,0,0,0,1,1,0,1,0,0,0,0
+12,9b52ef,Any good seafood places within walking distance? Do I need a reservation?,2,2,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0

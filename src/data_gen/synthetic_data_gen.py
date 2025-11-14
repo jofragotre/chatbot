@@ -1,92 +1,175 @@
+"""
+Main script for generating synthetic hotel chatbot conversations
+"""
 import json
+import logging
 import random
-import torch
-import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from pathlib import Path
+from typing import List, Dict
+import argparse
 
+from config import ModelConfig, GenerationConfig
+from model_utils import ModelHandler
+from conversation_utils import ConversationPrompts, parse_generated_conversation
 
-# Setup: Load quantized model and tokenizer
-model_name = "Qwen/Qwen3-1.7B"
-tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(
-    model_name,
-    device_map="mps",  # Use M3 GPU if available
-    dtype=torch.float16,  # Further memory optimization
-    trust_remote_code=True)
-tokenizer.pad_token_id = tokenizer.eos_token_id  # Qwen often needs this for generation
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-# Load existing samples for few shot examples:
-json_path = "data/provided/small_sample.jsonl"
-msgs = []
-with open(json_path, "r", encoding="utf-8") as f:
-    for line in f:
-        line = line.strip()
-        if not line:
-            continue
-        obj = json.loads(line)
-        msgs.append({"messages": obj["messages"]})
+class ConversationGenerator:
+    """Main class for generating synthetic conversations"""
+    
+    def __init__(self, model_config: ModelConfig, generation_config: GenerationConfig):
+        self.model_config = model_config
+        self.generation_config = generation_config
+        self.model_handler = ModelHandler(model_config)
+        self.prompt_generator = ConversationPrompts()
+        
+    def generate_conversations(self) -> List[Dict]:
+        """Generate all conversations according to configuration"""
+        logger.info("Starting conversation generation...")
+        
+        # Load model
+        self.model_handler.load_model()
+        
+        all_conversations = []
+        
+        # Generate for each intent type
+        intent_methods = {
+            "low": self.prompt_generator.generate_low_intent_prompt,
+            "medium": self.prompt_generator.generate_medium_intent_prompt,
+            "high": self.prompt_generator.generate_high_intent_prompt,
+            "abandoned": self.prompt_generator.generate_abandoned_intent_prompt
+        }
+        
+        for intent, method in intent_methods.items():
+            target_count = int(
+                self.generation_config.conversations_per_intent * 
+                self.generation_config.intent_weights[intent]
+            )
+            logger.info(f"Generating {target_count} conversations for '{intent}' intent")
+            
+            intent_conversations = self._generate_for_intent(intent, method, target_count)
+            all_conversations.extend(intent_conversations)
+            
+            logger.info(f"Generated {len(intent_conversations)} conversations for '{intent}' intent")
+        
+        # Clean up model
+        self.model_handler.cleanup()
+        
+        logger.info(f"Total conversations generated: {len(all_conversations)}")
+        return all_conversations
+    
+    def _generate_for_intent(self, intent: str, prompt_method, target_count: int) -> List[Dict]:
+        """Generate conversations for a specific intent"""
+        conversations = []
+        retries = 0
+        max_total_retries = target_count * self.generation_config.max_retries
+        
+        while len(conversations) < target_count and retries < max_total_retries:
+            try:
+                # Generate prompt
+                prompt = prompt_method()
+                
+                # Generate conversation
+                generated_text = self.model_handler.generate_text(prompt)
+                
+                # Parse and validate
+                conversation = parse_generated_conversation(generated_text)
+                
+                # Verify intent matches
+                if conversation.get("intent_label") == intent:
+                    conversations.append(conversation)
+                    logger.debug(f"Successfully generated conversation {len(conversations)}/{target_count} for {intent}")
+                else:
+                    logger.warning(f"Generated conversation has wrong intent: {conversation.get('intent_label')} != {intent}")
+                    retries += 1
+                    
+            except Exception as e:
+                logger.warning(f"Failed to generate conversation for {intent}: {e}")
+                retries += 1
+                continue
+        
+        if len(conversations) < target_count:
+            logger.warning(f"Could only generate {len(conversations)}/{target_count} conversations for {intent}")
+        
+        return conversations
+    
+    def save_conversations(self, conversations: List[Dict], output_path: Path):
+        """Save conversations to JSONL file"""
+        logger.info(f"Saving {len(conversations)} conversations to {output_path}")
+        
+        # Shuffle conversations
+        random.shuffle(conversations)
+        
+        # Save as JSONL
+        with open(output_path, 'w', encoding='utf-8') as f:
+            for conv in conversations:
+                f.write(json.dumps(conv, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Conversations saved successfully!")
+    
+    def generate_statistics(self, conversations: List[Dict]) -> Dict:
+        """Generate statistics about the dataset"""
+        stats = {
+            "total_conversations": len(conversations),
+            "intent_distribution": {},
+            "avg_messages_per_conversation": 0,
+            "completed_bookings": 0,
+            "abandoned_bookings": 0
+        }
+        
+        total_messages = 0
+        
+        for conv in conversations:
+            intent = conv.get("intent_label", "unknown")
+            stats["intent_distribution"][intent] = stats["intent_distribution"].get(intent, 0) + 1
+            total_messages += len(conv.get("messages", []))
+            
+            if conv.get("booking_completed"):
+                stats["completed_bookings"] += 1
+            if intent == "abandoned":
+                stats["abandoned_bookings"] += 1
+        
+        stats["avg_messages_per_conversation"] = total_messages / len(conversations) if conversations else 0
+        
+        return stats
 
-# Categories for balance (e.g., for booking intent signal)
-categories = [
-    "low intent: broad questions like 'What's nearby?'",
-    "medium intent: specifics like dates/prices",
-    "high intent: direct booking with completion",
-    "abandoned high intent: starts booking but drops off"
-]
+def main():
+    """Main entry point"""
+    parser = argparse.ArgumentParser(description="Generate synthetic hotel chatbot conversations")
+    parser.add_argument("--output", "-o", type=str, default="synthetic_conversations.jsonl",
+                       help="Output file path")
+    parser.add_argument("--count", "-c", type=int, default=200,
+                       help="Total number of conversations to generate")
+    parser.add_argument("--model", "-m", type=str, default="Qwen/Qwen2.5-7B-Instruct",
+                       help="Model name to use")
+    
+    args = parser.parse_args()
+    
+    # Setup configurations
+    model_config = ModelConfig(model_name=args.model)
+    generation_config = GenerationConfig(conversations_per_intent=args.count // 4)
+    
+    # Generate conversations
+    generator = ConversationGenerator(model_config, generation_config)
+    conversations = generator.generate_conversations()
+    
+    # Save results
+    output_path = Path(args.output)
+    generator.save_conversations(conversations, output_path)
+    
+    # Generate and print statistics
+    stats = generator.generate_statistics(conversations)
+    print("\n=== Dataset Statistics ===")
+    print(f"Total conversations: {stats['total_conversations']}")
+    print(f"Average messages per conversation: {stats['avg_messages_per_conversation']:.1f}")
+    print(f"Intent distribution: {stats['intent_distribution']}")
+    print(f"Completed bookings: {stats['completed_bookings']}")
+    print(f"Abandoned bookings: {stats['abandoned_bookings']}")
 
-def generate_conversation(category):
-    # Build messages for Qwen chat template
-    messages = [
-        {"role": "system", "content": "You are a simulator for hotel chatbot conversations. "
-         "Generate realistic, varied sessions in valid JSON format only. "
-         "Match this schema: {'messages': list of dicts with 'role' (user/bot) and 'text', "
-         "optional 'booking': 'completed' or 'abandoned'}. "
-         "Avoid biases; make diverse (e.g., different names, topics). "
-         "Few-shot examples:"
-         f"{msgs}"
-         f"Now generate a NEW unique session for: {category}. Vary length (3-10 turns), include realistic bot responses. Output ONLY the JSON."}
-    ]
-
-    # Apply chat template
-    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-
-    # Tokenize and generate
-    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=500,  # Limit length
-        temperature=0.7,  # Creativityç
-        top_p=0.9,  # Diversity
-        do_sample=True,
-        eos_token_id=tokenizer.eos_token_id
-    )
-    generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-    # Extract and clean JSON (LLM might add extras)
-    try:
-        # Find the JSON part after the prompt
-        json_start = generated_text.find("{")
-        if json_start == -1:
-            raise ValueError("No JSON found")
-        json_str = generated_text[json_start:]
-        return json.loads(json_str)
-    except (json.JSONDecodeError, ValueError):
-        print(f"Invalid JSON for {category}: {json_str}, retrying...")
-        return json_str
-
-# Generate N sessions, balanced across categories
-num_sessions = 100
-synthetic_data = []
-for i in tqdm.tqdm(range(num_sessions)):
-    category = random.choice(categories)
-    session = generate_conversation(category)
-    # session["session_id"] = f"synthetic_{i:04d}"  # Unique ID
-    synthetic_data.append(session)
-    print(f"Generated session {i+1}/{num_sessions} for {category}")
-
-# Save to file
-with open("synthetic_data.txt", "w") as f:
-    for line in synthetic_data:
-        f.write(f"{line}\n")
-
-print("Synthetic data generated and saved to synthetic_data.json!")
+if __name__ == "__main__":
+    main()

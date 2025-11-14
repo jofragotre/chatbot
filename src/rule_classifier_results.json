@@ -1,0 +1,78 @@
+{
+  "metrics": {
+    "accuracy": 0.5466666666666666,
+    "macro_precision": 0.43029556650246303,
+    "macro_recall": 0.6647727272727273,
+    "macro_f1": 0.5021803718612229,
+    "weighted_precision": 0.39959277504105095,
+    "weighted_recall": 0.5466666666666666,
+    "weighted_f1": 0.4509066513321832,
+    "per_class": {
+      "abandoned": {
+        "precision": 0.20689655172413793,
+        "recall": 0.75,
+        "f1": 0.32432432432432434,
+        "support": 8
+      },
+      "high": {
+        "precision": 0.7142857142857143,
+        "recall": 1.0,
+        "f1": 0.8333333333333334,
+        "support": 15
+      },
+      "low": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 30
+      },
+      "medium": {
+        "precision": 0.8,
+        "recall": 0.9090909090909091,
+        "f1": 0.851063829787234,
+        "support": 22
+      }
+    },
+    "labels": [
+      "abandoned",
+      "high",
+      "low",
+      "medium"
+    ],
+    "auc_macro": 0.9633118569530847,
+    "auc_weighted": 0.9780555086204199
+  },
+  "training_analysis": {
+    "total_conversations": 175,
+    "label_distribution": {
+      "medium": 53,
+      "abandoned": 17,
+      "high": 35,
+      "low": 70
+    },
+    "avg_lengths": {
+      "medium": 188.9245283018868,
+      "abandoned": 94.88235294117646,
+      "high": 101.85714285714286,
+      "low": 134.94285714285715
+    },
+    "keyword_coverage": {
+      "medium": 1.0,
+      "abandoned": 1.0,
+      "high": 1.0,
+      "low": 0.9714285714285714
+    }
+  },
+  "rule_importance": {
+    "high_booking_commands": 30.0,
+    "high_commitment_phrases": 21.0,
+    "high_urgency": 5.0,
+    "medium_comparison_questions": 16.0,
+    "medium_specific_inquiries": 14.0,
+    "medium_consideration_phrases": 5.0,
+    "low_general_questions": 8.0,
+    "low_browsing_behavior": 5.0,
+    "abandoned_postponement": 15.0,
+    "abandoned_session_end": 12.5
+  }
+}

@@ -21,6 +21,8 @@ dependencies = [
   "torch==2.7.0+cu126",
   "accelerate",
   "pip",
+  "hf_xet",
+  "bitsandbytes"
 ]
 
 [project.optional-dependencies]

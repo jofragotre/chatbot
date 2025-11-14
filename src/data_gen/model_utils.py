@@ -1,15 +1,16 @@
 """
-Model loading and inference utilities
+Model loading and inference utilities with batch support
 """
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from typing import List, Optional
+from typing import List, Optional, Dict
 import logging
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
 class ModelHandler:
-    """Handles model loading and text generation"""
+    """Handles model loading and batch text generation"""
     
     def __init__(self, config):
         self.config = config
@@ -27,6 +28,10 @@ class ModelHandler:
                 trust_remote_code=True
             )
             
+            # Add padding token if not present
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+            
             # Load model
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.config.model_name,
@@ -41,34 +46,52 @@ class ModelHandler:
             logger.error(f"Failed to load model: {e}")
             raise
     
-    def generate_text(self, prompt: str) -> str:
-        """Generate text from a prompt"""
+    def generate_text_batch(self, prompts: List[str]) -> List[str]:
+        """Generate text from a batch of prompts"""
         if not self.model or not self.tokenizer:
             raise RuntimeError("Model not loaded. Call load_model() first.")
         
-        # Prepare messages for chat template
-        messages = [
-            {
-                "role": "system", 
-                "content": "You are a helpful assistant specialized in generating realistic hotel chatbot conversations."
-            },
-            {
-                "role": "user", 
-                "content": prompt
-            }
-        ]
+        if not prompts:
+            return []
         
-        # Apply chat template
-        text = self.tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
+        logger.debug(f"Processing batch of {len(prompts)} prompts")
         
-        # Tokenize
-        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
+        # Prepare all messages for chat template
+        all_messages = []
+        for prompt in prompts:
+            messages = [
+                {
+                    "role": "system", 
+                    "content": "You are a helpful assistant specialized in generating realistic hotel chatbot conversations."
+                },
+                {
+                    "role": "user", 
+                    "content": prompt
+                }
+            ]
+            all_messages.append(messages)
         
-        # Generate
+        # Apply chat template to all prompts
+        texts = []
+        for messages in all_messages:
+            text = self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True
+            )
+            texts.append(text)
+        
+        # Tokenize batch with padding
+        model_inputs = self.tokenizer(
+            texts, 
+            return_tensors="pt", 
+            padding=True, 
+            truncation=True,
+            padding_side="left",
+            max_length=2048
+        ).to(self.model.device)
+        
+        # Generate batch
         with torch.no_grad():
             generated_ids = self.model.generate(
                 **model_inputs,
@@ -76,17 +99,24 @@ class ModelHandler:
                 temperature=self.config.temperature,
                 do_sample=self.config.do_sample,
                 top_p=self.config.top_p,
-                pad_token_id=self.tokenizer.eos_token_id
+                pad_token_id=self.tokenizer.pad_token_id,
+                use_cache=True
             )
         
-        # Decode only the new tokens
-        generated_ids = [
-            output_ids[len(input_ids):] 
-            for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
-        ]
+        # Decode only the new tokens for each item in batch
+        responses = []
+        for i, (input_ids, output_ids) in enumerate(zip(model_inputs.input_ids, generated_ids)):
+            # Extract only the newly generated tokens
+            new_tokens = output_ids[len(input_ids):]
+            response = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+            responses.append(response.strip())
         
-        response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-        return response.strip()
+        return responses
+    
+    def generate_text(self, prompt: str) -> str:
+        """Generate text from a single prompt (wrapper for batch method)"""
+        responses = self.generate_text_batch([prompt])
+        return responses[0] if responses else ""
     
     def cleanup(self):
         """Clean up model and free memory"""

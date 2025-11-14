@@ -7,7 +7,7 @@ from typing import Dict, List
 @dataclass
 class ModelConfig:
     """Model configuration settings"""
-    model_name: str = "Qwen/Qwen3-4B"
+    model_name: str = "Qwen/Qwen3-1.7B"
     device_map: str = "auto"
     torch_dtype: str = "auto"
     max_new_tokens: int = 1024
@@ -20,7 +20,7 @@ class GenerationConfig:
     """Data generation configuration"""
     conversations_per_intent: int = 50
     max_retries: int = 3
-    batch_size: int = 5  # Generate in batches to avoid OOM
+    batch_size: int = 8 
     
     # Intent distribution
     intent_weights: Dict[str, float] = None

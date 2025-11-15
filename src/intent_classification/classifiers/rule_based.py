@@ -72,7 +72,7 @@ class RuleBasedClassifier(IntentClassifier):
         # Structural thresholds
         self.thresholds = {
             'min_messages_high': 3,      # Need some interaction for high intent
-            'max_messages_low': 4,       # Too many messages suggest deeper interest
+            'max_messages_low': 8,       # Too many messages suggest deeper interest
             'min_user_messages_medium': 2, # Medium needs comparison questions
             'min_words_commitment': 50   # High intent conversations tend to be longer
         }

@@ -18,7 +18,7 @@ def main():
     
     # Load dataset
     print("Loading dataset...")
-    dataset = ConversationLoader.load_jsonl("../data/synth/synthetic_conversations_v2.jsonl")  # Your generated data
+    dataset = ConversationLoader.load_jsonl("../data/synth/synthetic_conversations_v3.jsonl")
     print(f"Loaded {len(dataset)} conversations")
     print(f"Label distribution: {dataset.get_label_distribution()}")
     
@@ -26,7 +26,7 @@ def main():
     train_data, test_data = ConversationLoader.train_test_split(
         dataset, 
         test_size=0.3, 
-        random_state=42
+        random_state=0
     )
     
     print(f"\nTrain size: {len(train_data)}")

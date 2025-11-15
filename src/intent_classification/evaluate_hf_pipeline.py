@@ -9,7 +9,7 @@ import json
 
 from intent_classification.data import ConversationLoader
 from intent_classification.evaluation import ClassifierEvaluator
-from intent_classification.utils import setup_logging, print_metrics_summary
+from intent_classification.utils import setup_logging, print_metrics_summary, sanitize_for_json
 from classifiers.hf_pipeline_classifier import HFZeroShotPipelineClassifier
 
 
@@ -20,13 +20,13 @@ def main():
 
     # Load dataset
     print("Loading dataset...")
-    dataset = ConversationLoader.load_jsonl("synthetic_conversations.jsonl")
+    dataset = ConversationLoader.load_jsonl("../data/synth/synthetic_conversations_v3.jsonl")
     print(f"Loaded {len(dataset)} conversations")
     print(f"Label distribution: {dataset.get_label_distribution()}")
 
     # Split (train/val/test for consistency with other scripts)
     train_data, val_data, test_data = ConversationLoader.train_test_split(
-        dataset, test_size=0.2, validation_size=0.1, random_state=42, stratify=True
+        dataset, test_size=0.2, validation_size=0.1, random_state=0, stratify=True
     )
     print(f"\nTrain size: {len(train_data)}")
     print(f"Val size:   {len(val_data)}")
@@ -35,10 +35,9 @@ def main():
     # Initialize classifier
     print("\nInitializing HF zero-shot classifier...")
     config = {
-        # Try "facebook/bart-large-mnli" for a lighter model if needed
-        "model_name": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli-ling-wanli",
-        "text_source": "full",  # 'user' also supported
-        "hypothesis_template": "This hotel booking conversation is {}.",
+        "model_name": "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+        "text_source": "user", 
+        "hypothesis_template": "The user in this conversation is {}.",
     }
     classifier = HFZeroShotPipelineClassifier(config=config)
 
@@ -67,10 +66,8 @@ def main():
             f"Confidence: {result.prediction_confidence:.3f}"
         )
         conv = test_data.conversations[i]
-        for msg in conv.messages[:3]:
+        for msg in conv.messages: #[:3]:
             print(f"  {msg.role}: {msg.text}")
-        if len(conv.messages) > 3:
-            print(f"  ... ({len(conv.messages)-3} more messages)")
 
     # Classification report
     print(f"\n=== Classification Report ===")
@@ -83,7 +80,7 @@ def main():
         "model_info": classifier.get_model_info(),
     }
     with open("hf_pipeline_results.json", "w", encoding="utf-8") as f:
-        json.dump(results_summary, f, indent=2)
+        json.dump(sanitize_for_json(results_summary), f, indent=2)
     print("\nDetailed results saved to: hf_pipeline_results.json")
 
 

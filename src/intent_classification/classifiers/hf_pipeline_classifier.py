@@ -12,8 +12,8 @@ import torch
 from transformers import pipeline
 from sklearn.preprocessing import LabelEncoder
 
-from ..base.classifier import IntentClassifier
-from ..base.data_structures import Conversation, Dataset as ConvDataset
+from base.classifier import IntentClassifier
+from base.data_structures import Conversation, Dataset as ConvDataset
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +29,9 @@ class HFZeroShotPipelineClassifier(IntentClassifier):
         super().__init__(config or {})
 
         cfg = {
-            # Strong multilingual NLI model for zero-shot classification:
-            # "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli-ling-wanli"
-            # For a smaller/faster option: "facebook/bart-large-mnli"
-            "model_name": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli-ling-wanli",
+            "model_name": "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
             "text_source": "full",  # 'user' | 'full'
-            "hypothesis_template": "This hotel booking conversation is {}.",
+            "hypothesis_template": "The user in this conversation is {}.",
             "device": 0 if torch.cuda.is_available() else -1,
         }
         cfg.update(self.config)
@@ -45,12 +42,10 @@ class HFZeroShotPipelineClassifier(IntentClassifier):
 
         # Descriptive candidate labels to help zero-shot performance
         self.candidate_map = {
-            "low": "low intent (exploring; broad discovery; no specific dates)",
-            "medium": "medium intent (evaluating; comparing options; dates/prices)",
-            "high": "high intent (actioning; ready to book; giving details)",
-            "abandoned": (
-                "abandoned booking (payment requested or confirmation step reached but not completed)"
-            ),
+            "low": "browsing hotel information without booking commitment",
+            "medium": "actively considering booking with specific requirements", 
+            "high": "ready to complete a booking transaction",
+            "abandoned": "started booking process but did not complete payment"
         }
         self.candidate_labels = list(self.candidate_map.values())
         self.reverse_map = {v: k for k, v in self.candidate_map.items()}
@@ -75,10 +70,6 @@ class HFZeroShotPipelineClassifier(IntentClassifier):
             # tokenizer/model handle truncation internally
         )
 
-        # Fixed encoder over all four target labels for consistent outputs
-        self.label_encoder = LabelEncoder()
-        self.label_encoder.fit(self.target_labels)
-
         self.is_trained = True
 
         # Return a compact summary for consistency with other trainers
@@ -89,65 +80,94 @@ class HFZeroShotPipelineClassifier(IntentClassifier):
         }
 
     def predict(self, conversations: List[Conversation]) -> List[str]:
+        """Classify each user message then aggregate to conversation level"""
         if not self.is_trained or self.pipe is None:
             raise ValueError("Classifier not initialized. Call train() first.")
-
-        texts = [self._conversation_to_text(c) for c in conversations]
-        results = self.pipe(
-            sequences=texts,
-            candidate_labels=self.candidate_labels,
-            hypothesis_template=self.config["hypothesis_template"],
-            multi_label=False,
-        )
-
-        # Pipeline returns a dict for single input, list of dicts for batch
-        if isinstance(results, dict):
-            results = [results]
-
-        preds: List[str] = []
-        for res in results:
-            if not res.get("labels"):
-                preds.append("low")  # safe fallback
+        
+        results = []
+        
+        for conv in conversations:
+            user_messages = conv.get_user_messages()
+            if not user_messages:
+                results.append("low")
                 continue
-            top_label = res["labels"][0]  # highest score
-            internal = self.reverse_map.get(top_label, "low")
-            preds.append(internal)
-
-        return preds
+                
+            # Classify each user message
+            message_texts = [msg.text for msg in user_messages]
+            message_results = self.pipe(
+                sequences=message_texts,
+                candidate_labels=self.candidate_labels,
+                hypothesis_template=self.config["hypothesis_template"],
+                multi_label=False,
+            )
+            
+            # Convert to consistent format
+            if isinstance(message_results, dict):
+                message_results = [message_results]
+                
+            # Aggregate predictions using weighted voting
+            intent_scores = {label: 0.0 for label in self.target_labels}
+            
+            for i, msg_result in enumerate(message_results):
+                # Weight later messages more heavily (recency bias)
+                weight = (i + 1) / len(message_results)
+                
+                for label, score in zip(msg_result["labels"], msg_result["scores"]):
+                    internal_label = self.reverse_map.get(label)
+                    if internal_label:
+                        intent_scores[internal_label] += weight * score
+            
+            # Return highest scoring intent
+            final_intent = max(intent_scores.items(), key=lambda x: x[1])[0]
+            results.append(final_intent)
+        
+        return results
 
     def predict_proba(self, conversations: List[Conversation]) -> List[Dict[str, float]]:
+        """Get probabilities using per-message classification and aggregation"""
         if not self.is_trained or self.pipe is None:
             raise ValueError("Classifier not initialized. Call train() first.")
-
-        texts = [self._conversation_to_text(c) for c in conversations]
-        results = self.pipe(
-            sequences=texts,
-            candidate_labels=self.candidate_labels,
-            hypothesis_template=self.config["hypothesis_template"],
-            multi_label=False,
-        )
-
-        if isinstance(results, dict):
-            results = [results]
-
-        proba_list: List[Dict[str, float]] = []
-        for res in results:
-            # Build zero dict then fill with returned scores
-            probs = {label: 0.0 for label in self.target_labels}
-            labels = res.get("labels", [])
-            scores = res.get("scores", [])
-            for lbl, score in zip(labels, scores):
-                internal = self.reverse_map.get(lbl)
-                if internal:
-                    probs[internal] = float(score)
-
-            # Normalize safety (should already be ~1.0 for multi_label=False)
-            total = sum(probs.values()) or 1.0
-            for k in probs:
-                probs[k] = float(probs[k] / total)
-
-            proba_list.append(probs)
-
+    
+        proba_list = []
+        
+        for conv in conversations:
+            user_messages = conv.get_user_messages()
+            if not user_messages:
+                # Default probabilities for conversations with no user messages
+                default_probs = {label: 0.0 for label in self.target_labels}
+                default_probs["low"] = 1.0
+                proba_list.append(default_probs)
+                continue
+                
+            # Classify each user message
+            message_texts = [msg.text for msg in user_messages]
+            message_results = self.pipe(
+                sequences=message_texts,
+                candidate_labels=self.candidate_labels,
+                hypothesis_template=self.config["hypothesis_template"],
+                multi_label=False,
+            )
+            
+            if isinstance(message_results, dict):
+                message_results = [message_results]
+                
+            # Aggregate probabilities using weighted voting
+            intent_scores = {label: 0.0 for label in self.target_labels}
+            
+            for i, msg_result in enumerate(message_results):
+                # Weight later messages more heavily (recency bias)
+                weight = (i + 1) / len(message_results)
+                
+                for label, score in zip(msg_result["labels"], msg_result["scores"]):
+                    internal_label = self.reverse_map.get(label)
+                    if internal_label:
+                        intent_scores[internal_label] += weight * score
+            
+            # Normalize to probabilities
+            total = sum(intent_scores.values()) or 1.0
+            normalized_probs = {k: v / total for k, v in intent_scores.items()}
+            proba_list.append(normalized_probs)
+        
         return proba_list
 
     # ========= Internals =========

@@ -1,36 +1,36 @@
 {
   "metrics": {
-    "accuracy": 0.5466666666666666,
-    "macro_precision": 0.43029556650246303,
-    "macro_recall": 0.6647727272727273,
-    "macro_f1": 0.5021803718612229,
-    "weighted_precision": 0.39959277504105095,
-    "weighted_recall": 0.5466666666666666,
-    "weighted_f1": 0.4509066513321832,
+    "accuracy": 0.7266666666666667,
+    "macro_precision": 0.7247201842979577,
+    "macro_recall": 0.7780555555555555,
+    "macro_f1": 0.6978782826650987,
+    "weighted_precision": 0.827571924558583,
+    "weighted_recall": 0.7266666666666667,
+    "weighted_f1": 0.7175140644009563,
     "per_class": {
       "abandoned": {
-        "precision": 0.20689655172413793,
-        "recall": 0.75,
-        "f1": 0.32432432432432434,
-        "support": 8
+        "precision": 0.35668789808917195,
+        "recall": 0.7466666666666667,
+        "f1": 0.4827586206896552,
+        "support": 75
       },
       "high": {
-        "precision": 0.7142857142857143,
+        "precision": 0.7075471698113207,
         "recall": 1.0,
-        "f1": 0.8333333333333334,
-        "support": 15
+        "f1": 0.8287292817679558,
+        "support": 150
       },
       "low": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1": 0.0,
-        "support": 30
+        "precision": 1.0,
+        "recall": 0.42333333333333334,
+        "f1": 0.594847775175644,
+        "support": 300
       },
       "medium": {
-        "precision": 0.8,
-        "recall": 0.9090909090909091,
-        "f1": 0.851063829787234,
-        "support": 22
+        "precision": 0.8346456692913385,
+        "recall": 0.9422222222222222,
+        "f1": 0.8851774530271399,
+        "support": 225
       }
     },
     "labels": [
@@ -39,28 +39,28 @@
       "low",
       "medium"
     ],
-    "auc_macro": 0.9633118569530847,
-    "auc_weighted": 0.9780555086204199
+    "auc_macro": 0.9846605379188713,
+    "auc_weighted": 0.9914199294532627
   },
   "training_analysis": {
-    "total_conversations": 175,
+    "total_conversations": 1750,
     "label_distribution": {
-      "medium": 53,
-      "abandoned": 17,
-      "high": 35,
-      "low": 70
+      "abandoned": 175,
+      "high": 350,
+      "medium": 525,
+      "low": 700
     },
     "avg_lengths": {
-      "medium": 188.9245283018868,
-      "abandoned": 94.88235294117646,
-      "high": 101.85714285714286,
-      "low": 134.94285714285715
+      "abandoned": 101.26285714285714,
+      "high": 105.37142857142857,
+      "medium": 191.13142857142856,
+      "low": 128.89
     },
     "keyword_coverage": {
-      "medium": 1.0,
       "abandoned": 1.0,
       "high": 1.0,
-      "low": 0.9714285714285714
+      "medium": 1.0,
+      "low": 0.9685714285714285
     }
   },
   "rule_importance": {

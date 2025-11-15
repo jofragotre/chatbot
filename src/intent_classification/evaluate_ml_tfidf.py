@@ -10,7 +10,7 @@ import numpy as np
 
 from intent_classification.data import ConversationLoader
 from intent_classification.evaluation import ClassifierEvaluator
-from intent_classification.utils import setup_logging, print_metrics_summary
+from intent_classification.utils import setup_logging, print_metrics_summary, sanitize_for_json
 from classifiers.ml_tfidf import TfidfMLClassifier
 
 
@@ -45,13 +45,13 @@ def main():
 
     # Load
     print("Loading dataset...")
-    dataset = ConversationLoader.load_jsonl("synthetic_conversations.jsonl")
+    dataset = ConversationLoader.load_jsonl("../data/synth/synthetic_conversations_v3.jsonl")
     print(f"Loaded {len(dataset)} conversations")
     print(f"Label distribution: {dataset.get_label_distribution()}")
 
     # Split (train/val/test for consistency)
     train_data, val_data, test_data = ConversationLoader.train_test_split(
-        dataset, test_size=0.2, validation_size=0.1, random_state=42, stratify=True
+        dataset, test_size=0.2, validation_size=0.1, random_state=0, stratify=True
     )
     print(f"\nTrain size: {len(train_data)}")
     print(f"Val size:   {len(val_data)}")
@@ -63,11 +63,11 @@ def main():
         "ngram_range": (1, 2),
         "max_features": 12000,
         "use_structural_features": True,
-        "model_type": "logreg",  # 'svm' also supported
+        "model_type": "logreg",
         "C": 2.0,
         "class_weight": "balanced",
         "calibrate": True,
-        "random_state": 42,
+        "random_state": 0,
     }
     clf = TfidfMLClassifier(config=config)
 
@@ -110,7 +110,7 @@ def main():
         "model_info": clf.get_model_info(),
     }
     with open("ml_tfidf_results.json", "w", encoding="utf-8") as f:
-        json.dump(results_summary, f, indent=2)
+        json.dump(sanitize_for_json(results_summary), f, indent=2)
     print("\nDetailed results saved to: ml_tfidf_results.json")
 
 

@@ -24,15 +24,6 @@ class GenerationConfig:
     
     # Intent distribution
     intent_weights: Dict[str, float] = None
-    
-    def __post_init__(self):
-        if self.intent_weights is None:
-            self.intent_weights = {
-                "low": 0.4,      # 40% exploring conversations
-                "medium": 0.3,   # 30% evaluating conversations
-                "high": 0.2,     # 20% actioning conversations
-                "abandoned": 0.1 # 10% abandoned conversations
-            }
 
 # Conversation parameters
 HOTEL_CONTEXTS = [

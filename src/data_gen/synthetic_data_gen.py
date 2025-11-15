@@ -50,8 +50,7 @@ class BatchedConversationGenerator:
         
         for intent, method in intent_methods.items():
             target_count = int(
-                self.generation_config.conversations_per_intent * 
-                self.generation_config.intent_weights[intent]
+                self.generation_config.conversations_per_intent
             )
             logger.info(f"Generating {target_count} conversations for '{intent}' intent")
             
@@ -176,7 +175,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate synthetic hotel chatbot conversations with batching")
     parser.add_argument("--output", "-o", type=str, default="synthetic_conversations.jsonl",
                        help="Output file path")
-    parser.add_argument("--count", "-c", type=int, default=1000,
+    parser.add_argument("--count", "-c", type=int, default=10000,
                        help="Total number of conversations to generate")
     parser.add_argument("--model", "-m", type=str, default="Qwen/Qwen3-1.7B",
                        help="Model name to use")

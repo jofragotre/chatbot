@@ -1,16 +1,17 @@
 """
-Model loading and inference utilities with batch support
+Model loading and inference utilities with batch support and advanced generation
 """
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from typing import List, Optional, Dict
 import logging
+import random
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
 class ModelHandler:
-    """Handles model loading and batch text generation"""
+    """Handles model loading and batch text generation with advanced strategies"""
     
     def __init__(self, config):
         self.config = config
@@ -46,15 +47,18 @@ class ModelHandler:
             logger.error(f"Failed to load model: {e}")
             raise
     
-    def generate_text_batch(self, prompts: List[str]) -> List[str]:
-        """Generate text from a batch of prompts"""
+    def generate_text_batch_advanced(self, prompts: List[str], generation_strategy: str = "standard") -> List[str]:
+        """Generate text with advanced strategies"""
         if not self.model or not self.tokenizer:
             raise RuntimeError("Model not loaded. Call load_model() first.")
         
         if not prompts:
             return []
         
-        logger.debug(f"Processing batch of {len(prompts)} prompts")
+        logger.debug(f"Processing batch of {len(prompts)} prompts with {generation_strategy} strategy")
+        
+        # Apply generation strategy
+        generation_params = self._get_generation_params(generation_strategy)
         
         # Prepare all messages for chat template
         all_messages = []
@@ -62,7 +66,7 @@ class ModelHandler:
             messages = [
                 {
                     "role": "system", 
-                    "content": "You are a helpful assistant specialized in generating realistic hotel chatbot conversations."
+                    "content": "You are a helpful assistant specialized in generating realistic hotel chatbot conversations. Create natural, varied conversations that match the specified user booking intent level."
                 },
                 {
                     "role": "user", 
@@ -91,14 +95,16 @@ class ModelHandler:
             max_length=2048
         ).to(self.model.device)
         
-        # Generate batch
+        # Generate batch with advanced parameters
         with torch.no_grad():
             generated_ids = self.model.generate(
                 **model_inputs,
-                max_new_tokens=self.config.max_new_tokens,
-                temperature=self.config.temperature,
-                do_sample=self.config.do_sample,
-                top_p=self.config.top_p,
+                max_new_tokens=generation_params["max_new_tokens"],
+                temperature=generation_params["temperature"],
+                do_sample=generation_params["do_sample"],
+                top_p=generation_params["top_p"],
+                top_k=generation_params.get("top_k"),
+                repetition_penalty=generation_params.get("repetition_penalty"),
                 pad_token_id=self.tokenizer.pad_token_id,
                 use_cache=True
             )
@@ -112,6 +118,44 @@ class ModelHandler:
             responses.append(response.strip())
         
         return responses
+    
+    def _get_generation_params(self, strategy: str) -> Dict:
+        """Get generation parameters based on strategy"""
+        base_params = {
+            "max_new_tokens": self.config.max_new_tokens,
+            "temperature": self.config.temperature,
+            "do_sample": self.config.do_sample,
+            "top_p": self.config.top_p
+        }
+        
+        if strategy == "creative":
+            # More creative/diverse generation
+            return {
+                **base_params,
+                "temperature": min(self.config.temperature + 0.1, 1.0),
+                "top_p": min(self.config.top_p + 0.05, 0.95),
+                "top_k": 50,
+                "repetition_penalty": 1.05
+            }
+        elif strategy == "focused":
+            # More focused/consistent generation
+            return {
+                **base_params,
+                "temperature": max(self.config.temperature - 0.1, 0.1),
+                "top_p": max(self.config.top_p - 0.1, 0.7),
+                "top_k": 40,
+                "repetition_penalty": 1.02
+            }
+        else:  # standard
+            return {
+                **base_params,
+                "repetition_penalty": 1.03
+            }
+    
+    def generate_text_batch(self, prompts: List[str]) -> List[str]:
+        """Generate text from a batch of prompts (wrapper for compatibility)"""
+        strategy = random.choice(["standard", "creative", "focused"])
+        return self.generate_text_batch_advanced(prompts, strategy)
     
     def generate_text(self, prompt: str) -> str:
         """Generate text from a single prompt (wrapper for batch method)"""

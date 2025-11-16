@@ -1,36 +1,36 @@
 {
   "metrics": {
-    "accuracy": 0.7266666666666667,
-    "macro_precision": 0.7247201842979577,
-    "macro_recall": 0.7780555555555555,
-    "macro_f1": 0.6978782826650987,
-    "weighted_precision": 0.827571924558583,
-    "weighted_recall": 0.7266666666666667,
-    "weighted_f1": 0.7175140644009563,
+    "accuracy": 0.6258333333333334,
+    "macro_precision": 0.7218231884205879,
+    "macro_recall": 0.6258333333333334,
+    "macro_f1": 0.5459042242851236,
+    "weighted_precision": 0.721823188420588,
+    "weighted_recall": 0.6258333333333334,
+    "weighted_f1": 0.5459042242851236,
     "per_class": {
       "abandoned": {
-        "precision": 0.35668789808917195,
-        "recall": 0.7466666666666667,
-        "f1": 0.4827586206896552,
-        "support": 75
+        "precision": 0.635593220338983,
+        "recall": 0.75,
+        "f1": 0.6880733944954128,
+        "support": 300
       },
       "high": {
-        "precision": 0.7075471698113207,
+        "precision": 0.5870841487279843,
         "recall": 1.0,
-        "f1": 0.8287292817679558,
-        "support": 150
+        "f1": 0.7398273736128237,
+        "support": 300
       },
       "low": {
         "precision": 1.0,
-        "recall": 0.42333333333333334,
-        "f1": 0.594847775175644,
+        "recall": 0.03333333333333333,
+        "f1": 0.06451612903225806,
         "support": 300
       },
       "medium": {
-        "precision": 0.8346456692913385,
-        "recall": 0.9422222222222222,
-        "f1": 0.8851774530271399,
-        "support": 225
+        "precision": 0.6646153846153846,
+        "recall": 0.72,
+        "f1": 0.6912,
+        "support": 300
       }
     },
     "labels": [
@@ -39,28 +39,28 @@
       "low",
       "medium"
     ],
-    "auc_macro": 0.9846605379188713,
-    "auc_weighted": 0.9914199294532627
+    "auc_macro": 0.9414532407407408,
+    "auc_weighted": 0.941453240740741
   },
   "training_analysis": {
-    "total_conversations": 1750,
+    "total_conversations": 2800,
     "label_distribution": {
-      "abandoned": 175,
-      "high": 350,
-      "medium": 525,
-      "low": 700
+      "medium": 700,
+      "high": 700,
+      "low": 700,
+      "abandoned": 700
     },
     "avg_lengths": {
-      "abandoned": 101.26285714285714,
-      "high": 105.37142857142857,
-      "medium": 191.13142857142856,
-      "low": 128.89
+      "medium": 231.57857142857142,
+      "high": 148.8942857142857,
+      "low": 118.12142857142857,
+      "abandoned": 125.54571428571428
     },
     "keyword_coverage": {
-      "abandoned": 1.0,
-      "high": 1.0,
       "medium": 1.0,
-      "low": 0.9685714285714285
+      "high": 1.0,
+      "low": 0.51,
+      "abandoned": 0.9985714285714286
     }
   },
   "rule_importance": {

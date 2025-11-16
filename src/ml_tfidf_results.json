@@ -1,36 +1,36 @@
 {
   "metrics": {
-    "accuracy": 0.99,
-    "macro_precision": 0.984936414785661,
-    "macro_recall": 0.9908333333333332,
-    "macro_f1": 0.9877828290797936,
-    "weighted_precision": 0.9901235938823878,
-    "weighted_recall": 0.99,
-    "weighted_f1": 0.9900166215123976,
+    "accuracy": 0.9875,
+    "macro_precision": 0.9875669235550861,
+    "macro_recall": 0.9875,
+    "macro_f1": 0.9875058370135114,
+    "weighted_precision": 0.9875669235550862,
+    "weighted_recall": 0.9875,
+    "weighted_f1": 0.9875058370135114,
     "per_class": {
       "abandoned": {
-        "precision": 0.9615384615384616,
-        "recall": 1.0,
-        "f1": 0.9803921568627451,
-        "support": 50
+        "precision": 0.9753694581280788,
+        "recall": 0.99,
+        "f1": 0.9826302729528535,
+        "support": 200
       },
       "high": {
-        "precision": 0.98989898989899,
-        "recall": 0.98,
-        "f1": 0.9849246231155779,
-        "support": 100
+        "precision": 0.9848484848484849,
+        "recall": 0.975,
+        "f1": 0.9798994974874372,
+        "support": 200
       },
       "low": {
-        "precision": 0.9949748743718593,
-        "recall": 0.99,
-        "f1": 0.9924812030075187,
+        "precision": 0.9900497512437811,
+        "recall": 0.995,
+        "f1": 0.9925187032418953,
         "support": 200
       },
       "medium": {
-        "precision": 0.9933333333333333,
-        "recall": 0.9933333333333333,
-        "f1": 0.9933333333333333,
-        "support": 150
+        "precision": 1.0,
+        "recall": 0.99,
+        "f1": 0.9949748743718593,
+        "support": 200
       }
     },
     "labels": [
@@ -39,30 +39,32 @@
       "low",
       "medium"
     ],
-    "auc_macro": 0.9997924603174603,
-    "auc_weighted": 0.9997131746031745
+    "roc_auc_macro": 0.9988208333333334,
+    "roc_auc_weighted": 0.9988208333333334,
+    "pr_auc_macro": 0.997002734091326,
+    "pr_auc_weighted": 0.9970027340913259
   },
   "training_summary": {
-    "train_accuracy": 0.9903,
-    "n_train": 1750,
-    "val_accuracy": 1.0
+    "train_accuracy": 0.9889,
+    "n_train": 2800,
+    "val_accuracy": 0.99
   },
   "model_info": {
     "classifier_type": "TfidfMLClassifier",
     "is_trained": true,
     "config": {
-      "text_source": "user",
+      "text_source": "full",
       "ngram_range": [
         1,
         2
       ],
-      "max_features": 12000,
+      "max_features": 5000,
       "lowercase": true,
       "stop_words": "english",
       "min_df": 2,
       "max_df": 0.95,
       "use_structural_features": true,
-      "model_type": "logreg",
+      "model_type": "svm",
       "C": 2.0,
       "class_weight": "balanced",
       "calibrate": true,

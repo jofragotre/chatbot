@@ -17,7 +17,7 @@ class RuleBasedClassifier(IntentClassifier):
     def __init__(self, config: Dict[str, Any] = None):
         super().__init__(config)
         
-        # Define keyword patterns for each intent
+        # Define keyword patterns for each intent - This could be more refined. 
         self.patterns = {
             'high': {
                 'booking_commands': [
@@ -141,6 +141,8 @@ class RuleBasedClassifier(IntentClassifier):
         
         # Count keyword matches
         for pattern_type, keywords in intent_patterns.items():
+
+            # Count matches
             matches = sum(1 for keyword in keywords if keyword in user_text)
             
             # Weight different pattern types
@@ -151,7 +153,7 @@ class RuleBasedClassifier(IntentClassifier):
             elif pattern_type in ['comparison_questions', 'specific_inquiries']:
                 score += matches * 2.0  # Medium weight for evaluation
             else:
-                score += matches * 1.0  # Base weight
+                score += matches * 1.0  # Base weight - general keywords
         
         # Add structural bonuses
         if intent == 'high':
@@ -201,7 +203,7 @@ class RuleBasedClassifier(IntentClassifier):
         """Check if conversation contains specific booking details"""
         user_text = conversation.get_user_text().lower()
         
-        # Look for dates, numbers, names, emails
+        # Look for dates, numbers, names, emails - could add more: money patterns, etc.
         patterns = [
             r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b',  # Dates
             r'\b\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b',  # Month dates
@@ -223,7 +225,7 @@ class RuleBasedClassifier(IntentClassifier):
         # Look for signs of abandonment
         abandonment_signals = [
             ('payment' in bot_text or 'card' in bot_text) and ('later' in user_text),
-            'hold' in user_text and 'room' in user_text,
+            'hold' in user_text and 'room' in user_text, # Hold is very generic
             len(conversation.messages) > 4 and conversation.messages[-1].role == 'bot'  # Bot had last word
         ]
         
@@ -240,7 +242,6 @@ class RuleBasedClassifier(IntentClassifier):
         scores = self._apply_structural_filters(conversation, scores)
         
         # Convert to probabilities using softmax-like normalization
-        # Add small epsilon to avoid division by zero
         epsilon = 0.01
         total_score = sum(scores.values()) + epsilon * len(scores)
         

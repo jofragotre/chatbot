@@ -5,7 +5,8 @@ import numpy as np
 from typing import List, Dict, Any, Optional
 from sklearn.metrics import (
     accuracy_score, precision_recall_fscore_support, 
-    confusion_matrix, classification_report, roc_auc_score
+    confusion_matrix, classification_report, roc_auc_score,
+    precision_recall_curve, auc
 )
 from sklearn.preprocessing import LabelBinarizer
 
@@ -58,13 +59,20 @@ class IntentClassificationMetrics:
             'labels': labels
         }
         
-        # Add AUC if probabilities available
+        # Add AUC scores if probabilities available
         if y_proba is not None:
             try:
                 auc_scores = IntentClassificationMetrics._calculate_auc_scores(
                     y_true, y_proba, labels
                 )
                 metrics.update(auc_scores)
+                
+                # Add PR-AUC scores
+                pr_auc_scores = IntentClassificationMetrics._calculate_pr_auc_scores(
+                    y_true, y_proba, labels
+                )
+                metrics.update(pr_auc_scores)
+                
             except Exception as e:
                 print(f"Warning: Could not calculate AUC scores: {e}")
         
@@ -74,7 +82,7 @@ class IntentClassificationMetrics:
     def _calculate_auc_scores(y_true: List[str], 
                             y_proba: List[Dict[str, float]], 
                             labels: List[str]) -> Dict[str, float]:
-        """Calculate AUC scores"""
+        """Calculate ROC-AUC scores"""
         
         # Convert to binary format for AUC calculation
         lb = LabelBinarizer()
@@ -90,16 +98,16 @@ class IntentClassificationMetrics:
         
         if len(labels) == 2:
             # Binary classification
-            auc_scores['auc'] = roc_auc_score(y_true_binary, y_proba_matrix[:, 1])
+            auc_scores['roc_auc'] = roc_auc_score(y_true_binary, y_proba_matrix[:, 1])
         else:
             # Multi-class classification
             try:
                 # Macro-averaged AUC
-                auc_scores['auc_macro'] = roc_auc_score(
+                auc_scores['roc_auc_macro'] = roc_auc_score(
                     y_true_binary, y_proba_matrix, average='macro', multi_class='ovr'
                 )
                 # Weighted AUC
-                auc_scores['auc_weighted'] = roc_auc_score(
+                auc_scores['roc_auc_weighted'] = roc_auc_score(
                     y_true_binary, y_proba_matrix, average='weighted', multi_class='ovr'
                 )
             except ValueError:
@@ -107,6 +115,70 @@ class IntentClassificationMetrics:
                 pass
         
         return auc_scores
+    
+    @staticmethod
+    def _calculate_pr_auc_scores(y_true: List[str], 
+                               y_proba: List[Dict[str, float]], 
+                               labels: List[str]) -> Dict[str, float]:
+        """Calculate Precision-Recall AUC scores"""
+        
+        # Convert to binary format
+        lb = LabelBinarizer()
+        y_true_binary = lb.fit_transform(y_true)
+        
+        # Convert probabilities to matrix
+        y_proba_matrix = np.zeros((len(y_proba), len(labels)))
+        for i, proba_dict in enumerate(y_proba):
+            for j, label in enumerate(labels):
+                y_proba_matrix[i, j] = proba_dict.get(label, 0.0)
+        
+        pr_auc_scores = {}
+        
+        if len(labels) == 2:
+            # Binary classification
+            precision, recall, _ = precision_recall_curve(
+                y_true_binary, y_proba_matrix[:, 1]
+            )
+            pr_auc_scores['pr_auc'] = auc(recall, precision)
+        else:
+            # Multi-class classification - calculate per-class PR-AUC
+            per_class_pr_auc = []
+            class_supports = []
+            
+            for i, label in enumerate(labels):
+                try:
+                    # One-vs-rest for each class
+                    y_true_class = (y_true_binary[:, i] if y_true_binary.ndim > 1 
+                                  else (y_true_binary == i).astype(int))
+                    y_proba_class = y_proba_matrix[:, i]
+                    
+                    precision, recall, _ = precision_recall_curve(
+                        y_true_class, y_proba_class
+                    )
+                    
+                    if len(np.unique(y_true_class)) > 1:  # Only if class exists
+                        class_pr_auc = auc(recall, precision)
+                        per_class_pr_auc.append(class_pr_auc)
+                        class_supports.append(np.sum(y_true_class))
+                    else:
+                        per_class_pr_auc.append(0.0)
+                        class_supports.append(0)
+                        
+                except Exception:
+                    per_class_pr_auc.append(0.0)
+                    class_supports.append(0)
+            
+            # Macro-averaged PR-AUC
+            if per_class_pr_auc:
+                pr_auc_scores['pr_auc_macro'] = np.mean(per_class_pr_auc)
+                
+                # Weighted PR-AUC
+                if sum(class_supports) > 0:
+                    pr_auc_scores['pr_auc_weighted'] = np.average(
+                        per_class_pr_auc, weights=class_supports
+                    )
+        
+        return pr_auc_scores
     
     @staticmethod
     def get_confusion_matrix(y_true: List[str], y_pred: List[str], labels: Optional[List[str]] = None):

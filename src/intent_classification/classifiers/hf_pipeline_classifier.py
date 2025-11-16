@@ -11,6 +11,7 @@ import numpy as np
 import torch
 from transformers import pipeline
 from sklearn.preprocessing import LabelEncoder
+from tqdm import tqdm
 
 from base.classifier import IntentClassifier
 from base.data_structures import Conversation, Dataset as ConvDataset
@@ -86,7 +87,7 @@ class HFZeroShotPipelineClassifier(IntentClassifier):
         
         results = []
         
-        for conv in conversations:
+        for conv in tqdm(conversations):
             user_messages = conv.get_user_messages()
             if not user_messages:
                 results.append("low")
@@ -130,7 +131,7 @@ class HFZeroShotPipelineClassifier(IntentClassifier):
     
         proba_list = []
         
-        for conv in conversations:
+        for conv in tqdm(conversations):
             user_messages = conv.get_user_messages()
             if not user_messages:
                 # Default probabilities for conversations with no user messages

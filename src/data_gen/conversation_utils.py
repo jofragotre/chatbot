@@ -97,13 +97,14 @@ class ConversationPrompts:
         month = random.choice(MONTHS)
         season = ConversationPrompts._get_season(month)
         day_interval = random.randint(1, 8)
-        first_day = random.randint(1, 28 - day_interval)
+        first_day = random.randint(1, 28 - day_interval) # Assume 28 days per month and single month stay for simplicity
         last_day = first_day + day_interval
         
         # Calculate realistic pricing
         base_price = random.randint(*hotel_data["base_price_range"])
         seasonal_price = int(base_price * SEASONAL_MODIFIERS[season])
         
+        # Generated context
         context = {
             "hotel_category": category,
             "hotel_type": random.choice(hotel_data["contexts"]),

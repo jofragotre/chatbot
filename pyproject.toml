@@ -1,7 +1,7 @@
 [project]
-name = "hijiffy-intent-phase1"
+name = "chatbot-conversation-intent-classification"
 version = "0.1.0"
-description = "Rule-first + feature-based booking-intent classifier for hotel chats"
+description = "Booking-intent classifier for hotel chats"
 readme = "README.md"
 requires-python = ">=3.9,<3.13"
 license = { text = "MIT" }

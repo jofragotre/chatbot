@@ -45,7 +45,7 @@ def main():
 
     # Load
     print("Loading dataset...")
-    dataset = ConversationLoader.load_jsonl("../data/synth/synthetic_conversations_v3.jsonl")
+    dataset = ConversationLoader.load_jsonl("../data/synth/synthetic_conversations_large.jsonl")
     print(f"Loaded {len(dataset)} conversations")
     print(f"Label distribution: {dataset.get_label_distribution()}")
 
@@ -59,11 +59,11 @@ def main():
 
     # Configure classifier
     config = {
-        "text_source": "user",  # try 'full'
+        "text_source": "full",
         "ngram_range": (1, 2),
-        "max_features": 12000,
+        "max_features": 5000,
         "use_structural_features": True,
-        "model_type": "logreg",
+        "model_type": "svm",
         "C": 2.0,
         "class_weight": "balanced",
         "calibrate": True,

@@ -31,7 +31,7 @@ class TfidfMLClassifier(IntentClassifier):
         super().__init__(config or {})
 
         cfg = {
-            "text_source": "user",  # 'user' | 'full'
+            "text_source": "full",  # 'user' | 'full'
             "ngram_range": (1, 2),
             "max_features": 8000,
             "lowercase": True,
@@ -163,7 +163,7 @@ class TfidfMLClassifier(IntentClassifier):
 
     def _get_labels(self, labels: List[str], fit: bool) -> np.ndarray:
         if fit or self.label_encoder is None:
-            self.label_encoder = LabelEncoder()
+            self.label_encoder = LabelEncoder() # Categorical to numerical labels
             y = self.label_encoder.fit_transform(labels)
         else:
             y = self.label_encoder.transform(labels)
@@ -189,7 +189,7 @@ class TfidfMLClassifier(IntentClassifier):
             base = LinearSVC(C=C, class_weight=class_weight, random_state=random_state)
             if self.config.get("calibrate", True):
                 # Calibrate to get probabilities
-                return CalibratedClassifierCV(base_estimator=base, cv=3)
+                return CalibratedClassifierCV(estimator=base, cv=3)
             return base
         else:
             raise ValueError("Unsupported model_type. Use 'logreg' or 'svm'.")

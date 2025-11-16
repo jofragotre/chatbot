@@ -18,7 +18,7 @@ def main():
     
     # Load dataset
     print("Loading dataset...")
-    dataset = ConversationLoader.load_jsonl("../data/synth/synthetic_conversations_v3.jsonl")
+    dataset = ConversationLoader.load_jsonl("../data/synth/synthetic_conversations_large.jsonl")
     print(f"Loaded {len(dataset)} conversations")
     print(f"Label distribution: {dataset.get_label_distribution()}")
     

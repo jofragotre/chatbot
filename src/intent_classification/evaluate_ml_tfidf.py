@@ -113,7 +113,7 @@ def main():
         json.dump(sanitize_for_json(results_summary), f, indent=2)
     print("\nDetailed results saved to: ml_tfidf_results.json")
 
-    
+    # Analyze most important features    
     vec = clf.vectorizer
     le = clf.label_encoder
     tfidf_names = np.array(vec.get_feature_names_out())
@@ -126,13 +126,11 @@ def main():
                     else tfidf_names)
     sk_est = clf.clf
 
-    # First try the direct estimator attribute
     base = None
     if hasattr(sk_est, 'estimator') and hasattr(sk_est.estimator, 'coef_'):
         base = sk_est.estimator
         print("Found coefficients in direct estimator")
     elif hasattr(sk_est, 'calibrated_classifiers_') and len(sk_est.calibrated_classifiers_) > 0:
-        # Try the first calibrated classifier
         first_cal = sk_est.calibrated_classifiers_[0] 
         if hasattr(first_cal, 'estimator') and hasattr(first_cal.estimator, 'coef_'):
             base = first_cal.estimator
@@ -156,13 +154,6 @@ def main():
             print("Top negative:")
             for f, w in neg:
                 print(f"  {f:30s} {w: .4f}")
-    else:
-        print("Could not find LinearSVC coefficients in the calibrated classifier structure")
-        # Let's try one more debugging step
-        print("Trying to access sk_est.estimator directly...")
-        if hasattr(sk_est, 'estimator'):
-            print(f"sk_est.estimator type: {type(sk_est.estimator)}")
-            print(f"sk_est.estimator attributes: {[a for a in dir(sk_est.estimator) if not a.startswith('_')]}")
 
 
 if __name__ == "__main__":

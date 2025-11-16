@@ -113,6 +113,57 @@ def main():
         json.dump(sanitize_for_json(results_summary), f, indent=2)
     print("\nDetailed results saved to: ml_tfidf_results.json")
 
+    
+    vec = clf.vectorizer
+    le = clf.label_encoder
+    tfidf_names = np.array(vec.get_feature_names_out())
+    struct_names = np.array([
+        "total_msgs","turns","n_user_msgs","n_bot_msgs","total_words","user_ratio",
+        "avg_user_len","q_marks","ex_marks","digits","has_month","euro","price_words",
+    ])
+    feature_names = (np.concatenate([tfidf_names, struct_names])
+                    if clf.config.get("use_structural_features", True)
+                    else tfidf_names)
+    sk_est = clf.clf
+
+    # First try the direct estimator attribute
+    base = None
+    if hasattr(sk_est, 'estimator') and hasattr(sk_est.estimator, 'coef_'):
+        base = sk_est.estimator
+        print("Found coefficients in direct estimator")
+    elif hasattr(sk_est, 'calibrated_classifiers_') and len(sk_est.calibrated_classifiers_) > 0:
+        # Try the first calibrated classifier
+        first_cal = sk_est.calibrated_classifiers_[0] 
+        if hasattr(first_cal, 'estimator') and hasattr(first_cal.estimator, 'coef_'):
+            base = first_cal.estimator
+            print("Found coefficients in calibrated classifier's estimator")
+
+    if base is not None and hasattr(base, 'coef_'):
+        W = base.coef_  # shape: (n_classes, n_features)
+        classes = le.classes_
+        
+        def top_for_class(k, topn=10):
+            w = W[k]
+            pos = np.argsort(w)[-topn:][::-1]
+            neg = np.argsort(w)[:topn]
+            return list(zip(feature_names[pos], w[pos])), list(zip(feature_names[neg], w[neg]))
+
+        for k, cls_name in enumerate(classes):
+            pos, neg = top_for_class(k, 10)
+            print(f"\nClass {cls_name} — top positive:")
+            for f, w in pos:
+                print(f"  {f:30s} {w: .4f}")
+            print("Top negative:")
+            for f, w in neg:
+                print(f"  {f:30s} {w: .4f}")
+    else:
+        print("Could not find LinearSVC coefficients in the calibrated classifier structure")
+        # Let's try one more debugging step
+        print("Trying to access sk_est.estimator directly...")
+        if hasattr(sk_est, 'estimator'):
+            print(f"sk_est.estimator type: {type(sk_est.estimator)}")
+            print(f"sk_est.estimator attributes: {[a for a in dir(sk_est.estimator) if not a.startswith('_')]}")
+
 
 if __name__ == "__main__":
     main()
